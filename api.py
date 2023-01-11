@@ -1,51 +1,57 @@
+import psycopg2
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import psycopg2
-import json
-
-
-
-connection = psycopg2.connect(user = "postgres",
-                              password = "Rascal9013123",
-                              host = "localhost",
-                              port = "5032",
-                              database = "Portfolio_Dara_Schema")
-
-cursor = connection.cursor()
-cursor.execute('SELECT * FROM "Portfolio_data"."Users"')
-records = cursor.fetchall()
-
-cursor.close()
-connection.close()
+from flask_sqlalchemy import SQLAlchemy
+from flask_marshmallow import Marshmallow
+from sqlalchemy import Sequence
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Rascal9013123@localhost:5032/portfolioAPI'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 CORS(app)
 
-@app.route("/api/data", methods=["GET"])
-def get_resources():
-    connection = psycopg2.connect(user = "postgres",
-                              password = "Rascal9013123",
-                              host = "localhost",
-                              port = "5032",
-                              database = "Portfolio_Dara_Schema")
-    cursor = connection.cursor()
-    cursor.execute('SELECT * FROM "Portfolio_data"."Users"')
-    records = cursor.fetchall()
-    
-    users = []
-    for row in records:
-      user = {
-        'id': row[0],
-        'name': row[1],
-        'password': row[2]
-      }
-      users.append(user)
-    
-    cursor.close()
-    connection.close()
-    print(jsonify(users))
-    return jsonify(users)
-  
-if __name__ == "__main__":
-    app.run()
-    
+db = SQLAlchemy(app)
+ma = Marshmallow(app)
+
+class User(db.Model):
+    id = db.Column(db.Integer, Sequence('user_id_seq'), primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+    def __init__(self, username, password):
+        self.username = username
+        self.password = password
+
+class UserSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = User
+
+user_schema = UserSchema()
+users_schema = UserSchema(many=True)
+
+def create_users_table():
+    with app.app_context():
+        db.create_all()
+
+
+@app.route('/users', methods=['POST'])
+def add_user():
+    username = request.json['name']
+    password = request.json['password']
+
+    new_user = User(username, password)
+
+    db.session.add(new_user)
+    db.session.commit()
+
+    return user_schema.jsonify(new_user)
+
+@app.route('/users', methods=['GET'])
+def get_users():
+    all_users = User.query.all()
+    result = users_schema.dump(all_users)
+
+    return jsonify(result)
+
+if __name__ == '__main__':
+    create_users_table()
+    app.run(debug=True)
