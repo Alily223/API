@@ -52,6 +52,25 @@ def get_users():
 
     return jsonify(result)
 
+@app.route('/users/login', methods=['POST'])
+def login():
+    username = request.json['name']
+    password = request.json['password']
+    
+    if username == 'AdminPrime' and password == 'AdminPassPrime':
+        admin_logged_in = True
+    else:
+        admin_logged_in = False
+
+    user = User.query.filter_by(username=username).first()
+    if user:
+        if user.password == password:
+            return jsonify({'message': 'Successfully logged in.'}), 200
+        else:
+            return jsonify({'message': 'Invalid password.'}), 401
+    else:
+        return jsonify({'message': 'Invalid username.'}), 401
+
 if __name__ == '__main__':
     create_users_table()
     app.run(debug=True)
