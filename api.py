@@ -6,7 +6,7 @@ from flask_marshmallow import Marshmallow
 from sqlalchemy import Sequence
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Rascal9013123@localhost:5032/portfolioAPI'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://ijyulyynvgiiwv:474e7a9f51a81d99df57c936d81eed1864bf9f2e9a8d826bc008b52467022267@ec2-54-160-109-68.compute-1.amazonaws.com:5432/dchc82g7i6qkv1'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 CORS(app)
 
