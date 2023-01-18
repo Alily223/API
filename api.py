@@ -33,17 +33,23 @@ def create_users_table():
         db.create_all()
 
 
-@app.route('/users', methods=['POST'])
+@app.route('/users/signup', methods=['POST'])
 def add_user():
-    username = request.json['name']
-    password = request.json['password']
+    # Get the username and password from the request body
+    username = request.json.get('name')
+    password = request.json.get('password')
 
-    new_user = User(username, password)
+    # Check if a user with the same username already exists
+    user = User.query.filter_by(username=username).first()
+    if user:
+        return jsonify({'userinsertmessage':'user cant create'}), 409 
+    else: 
+        new_user = User(username=username, password=password)
 
-    db.session.add(new_user)
-    db.session.commit()
+        db.session.add(new_user)
+        db.session.commit()
 
-    return user_schema.jsonify(new_user)
+        return user_schema.jsonify(new_user)
 
 @app.route('/users', methods=['GET'])
 def get_users():
