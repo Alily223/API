@@ -3,16 +3,17 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
-from sqlalchemy import Sequence
+from sqlalchemy import Sequence, LargeBinary, Text
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://ijyulyynvgiiwv:474e7a9f51a81d99df57c936d81eed1864bf9f2e9a8d826bc008b52467022267@ec2-54-160-109-68.compute-1.amazonaws.com:5432/dchc82g7i6qkv1'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Rascal9013123@localhost:5032/portfolioAPI'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 CORS(app)
 
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
 
+# Tables
 class User(db.Model):
     id = db.Column(db.Integer, Sequence('user_id_seq'), primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
@@ -20,10 +21,82 @@ class User(db.Model):
     def __init__(self, username, password):
         self.username = username
         self.password = password
+        
+class Project(db.Model):
+    id = db.Column(db.Integer, Sequence('project_id_seq'), primary_key=True)
+    title = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(Text, nullable=True)
+    image = db.Column(LargeBinary, nullable=True)
+    link = db.Column(Text, nullable=True)
+    category = db.Column(db.String(100), nullable=False)
+    def __init__(self, title, description, image, link, category):
+        self.title = title
+        self.description = description
+        self.image = image
+        self.link = link
+        self.category = category 
+    
+class Certificate(db.Model):
+    id = db.Column(db.Integer, Sequence('Certificate_id_seq'), primary_key=True)
+    title = db.Column(db.String(200), unique=True, nullable=False)
+    description = db.Column(Text, nullable=True)
+    image = db.Column(LargeBinary, nullable=True)
+    def __init__(self, title, description, image):
+        self.title = title
+        self.description = description 
+        self.image = image
+   
 
+class UnfinishedProj(db.Model):
+    id = db.Column(db.Integer, Sequence('UnfinishedProj_id_seq'), primary_key=True)
+    title = db.Column(db.String(200), unique=True, nullable=False)
+    description = db.Column(Text, nullable=True)
+    progress = db.Column(db.Integer, nullable=True)
+    def __init__(self, title, description, progress):
+        self.title = title
+        self.description = description
+        self.progress = progress
+        
+class Blog(db.Model):
+    id = db.Column(db.Integer, Sequence('Blog_id_seq'), primary_key=True)
+    title = db.Column(db.String(200), unique=True, nullable=False)
+    description = db.Column(Text, nullable=True)
+    def __init__(self, title, description):
+        self.title = title
+        self.description = description
+    
+        
+# Schemas
+class BlogSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Blog
+
+class UnfinishedProjSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = UnfinishedProj
+class CertificateSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Certificate
+        
+class ProjectSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Project
+        
 class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = User
+        
+blog_schema = BlogSchema()
+blog_schemas = BlogSchema(many=True)
+        
+unfinishedProj_schema = UnfinishedProjSchema()
+unfinishedProj_schemas = UnfinishedProjSchema(many=True)
+       
+certificate_schema = CertificateSchema()
+certificates_schema = CertificateSchema(many=True)
+        
+project_schema = ProjectSchema()
+projects_schema = ProjectSchema(many=True)
 
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
@@ -32,6 +105,7 @@ def create_users_table():
     with app.app_context():
         db.create_all()
 
+#User app routes 
 
 @app.route('/users/signup', methods=['POST'])
 def add_user():
@@ -51,7 +125,7 @@ def add_user():
 
         return user_schema.jsonify(new_user)
 
-@app.route('/users', methods=['GET'])
+@app.route('/users/getusers', methods=['GET'])
 def get_users():
     all_users = User.query.all()
     result = users_schema.dump(all_users)
@@ -76,6 +150,27 @@ def login():
             return jsonify({'message': 'Invalid password.'}), 401
     else:
         return jsonify({'message': 'Invalid username.'}), 401
+    
+#Blog app routes
+
+@app.route("/blog/getblogs", methods=['GET'])
+def get_blogs():
+    all_blogs = Blog.query.all()
+    result = blog_schemas.dump(all_users)
+    
+    return jsonify(result)
+
+@app.route("/blog/postblog", methods=['POST'])
+def post_blog():
+    title = request.json.get('name')
+    description = request.json.get('description')
+    
+    new_blog = Blog(title=title, description=description)
+    
+    db.session.add(new_blog)
+    db.session.commit()
+
+    return blog_schema.jsonify(new_blog)
 
 if __name__ == '__main__':
     create_users_table()
