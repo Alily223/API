@@ -156,7 +156,7 @@ def login():
 @app.route("/blog/getblogs", methods=['GET'])
 def get_blogs():
     all_blogs = Blog.query.all()
-    result = blog_schemas.dump(all_users)
+    result = blog_schemas.dump(all_blogs)
     
     return jsonify(result)
 
@@ -171,6 +171,13 @@ def post_blog():
     db.session.commit()
 
     return blog_schema.jsonify(new_blog)
+
+@app.route("/blog/<int:blog_id>", methods=['DELETE'])
+def delete_blog(blog_id):
+    blog = Blog.query.get(blog_id)
+    db.session.delete(blog)
+    db.session.commit()
+    return 'Blog post deleted', 204
 
 if __name__ == '__main__':
     create_users_table()
