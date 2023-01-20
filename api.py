@@ -3,7 +3,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
-from sqlalchemy import Sequence, LargeBinary, Text
+from sqlalchemy import Sequence, LargeBinary, Text, ForeignKey
+from sqlalchemy.orm import relationship
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Rascal9013123@localhost:5032/portfolioAPI'
@@ -61,9 +62,12 @@ class Blog(db.Model):
     id = db.Column(db.Integer, Sequence('Blog_id_seq'), primary_key=True)
     title = db.Column(db.String(200), unique=True, nullable=False)
     description = db.Column(Text, nullable=True)
-    def __init__(self, title, description):
+    certificate_id = db.Column(db.Integer, ForeignKey('certificate.id'), nullable=False)
+    certificate = db.relationship('Certificate', backref=db.backref('blogs', lazy=True))
+    def __init__(self, title, description, certificate):
         self.title = title
         self.description = description
+        self.certificate = certificate
     
         
 # Schemas
@@ -163,7 +167,7 @@ def get_blogs():
 @app.route("/blog/postblog", methods=['POST'])
 def post_blog():
     title = request.json.get('name')
-    description = request.json.get('description')
+    description = request.form.get('description')
     
     new_blog = Blog(title=title, description=description)
     
