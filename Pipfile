@@ -12,6 +12,8 @@ marshmallow-sqlalchemy = "*"
 sqlalchemy = "*"
 marshmallow = "*"
 gunicorn = "*"
+beautifulsoup4 = "*"
+bleach = "*"
 
 [dev-packages]
 
