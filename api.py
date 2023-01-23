@@ -1,12 +1,17 @@
 import psycopg2
 from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from sqlalchemy import Sequence, LargeBinary, Text, ForeignKey
 from sqlalchemy.orm import relationship
+from functools import wraps
 from bs4 import BeautifulSoup
 import bleach
+import jwt
+from config import secret
+
+import os
 
 
 app = Flask(__name__)
@@ -109,6 +114,24 @@ users_schema = UserSchema(many=True)
 def create_users_table():
     with app.app_context():
         db.create_all()
+        
+        
+#middle-ware start
+
+def validate_token(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({'error': 'Token is missing'}), 401
+        try:
+            payload = jwt.decode(token, app.config['SECRET_KEY'])
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+            return jsonify({'error': 'Token is invalid'}), 401
+        return f(*args, **kwargs)
+
+
+#middle-ware start
 
 #User app routes 
 
@@ -137,11 +160,13 @@ def get_users():
 
     return jsonify(result)
 
+@validate_token
+@cross_origin()
 @app.route('/users/login', methods=['POST'])
 def login():
     username = request.json['name']
     password = request.json['password']
-    
+
     if username == 'AdminPrime' and password == 'AdminPassPrime':
         admin_logged_in = True
     else:
@@ -150,7 +175,12 @@ def login():
     user = User.query.filter_by(username=username).first()
     if user:
         if user.password == password:
-            return jsonify({'message': 'Successfully logged in.', 'admin_logged_in': admin_logged_in}), 200
+            payload = {'user_id': user.id}
+            token = jwt.encode(payload, secret)
+            if token is None:
+                return jsonify({'error': 'Error generating token'}), 500
+            else:
+                return jsonify({'message': 'Successfully logged in.', 'admin_logged_in': admin_logged_in, 'token': token}), 200
         else:
             return jsonify({'message': 'Invalid password.'}), 401
     else:
