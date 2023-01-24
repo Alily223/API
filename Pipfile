@@ -15,6 +15,7 @@ gunicorn = "*"
 beautifulsoup4 = "*"
 bleach = "*"
 pyjwt = "*"
+bcrypt = "*"
 
 [dev-packages]
 
