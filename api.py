@@ -8,7 +8,6 @@ from sqlalchemy.orm import relationship
 from functools import wraps
 import bleach
 import jwt
-from config import secret, adminsecret
 import bcrypt
 
 import os
@@ -27,12 +26,9 @@ class User(db.Model):
     id = db.Column(db.Integer, Sequence('user_id_seq'), primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    salt = db.Column(db.String(200), nullable=False)
     def __init__(self, username, password):
         self.username = username
-        self.salt = bcrypt.gensalt()
-        hashed_password = bcrypt.hashpw(password, self.salt)
-        self.password = hashed_password
+        self.password = password
 
         
 class Project(db.Model):
@@ -122,23 +118,6 @@ def create_users_table():
         
 #middle-ware start
 
-def validate_token(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token:
-            return jsonify({'error': 'Token is missing'}), 401
-        try:
-            payload = jwt.decode(token, secret if payload["role"] != "admin" else adminsecret)
-            if payload["role"] != "admin":
-                return jsonify({'error': 'Not authorized'}), 401
-        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
-            return jsonify({'error': 'Token is invalid'}), 401
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        return f(*args, **kwargs)
-    return decorated_function
-
-
 #middle-ware start
 
 #User app routes 
@@ -154,9 +133,8 @@ def add_user():
     if user:
         return jsonify({'userinsertmessage':'user cant create'}), 409 
     else:
-        # Hash the password using bcrypt
-        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-        new_user = User(username=username, password=hashed_password)
+        
+        new_user = User(username=username, password=password)
 
         db.session.add(new_user)
         db.session.commit()
@@ -170,51 +148,25 @@ def get_users():
 
     return jsonify(result)
 
-@validate_token
+
 @app.route('/users/login', methods=['POST'])
 def login():
-    token = request.headers.get('Authorization')
-    if token:
-        try:
-            payload = jwt.decode(token, secret if payload.get("role") != "admin" else adminsecret if payload else secret)
-            if payload['username'] and payload['user_id']:
-                response = jsonify({'message': 'Successfully logged in.', 'userLogInStatus': 'LOGGED_IN'})
-                response.headers.add('Access-Control-Allow-Origin', '*')
-                return response, 200
-        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
-            pass
-
-    # If the token is missing or invalid, continue with the login process
     username = request.json['name']
     password = request.json['password']
 
     admin_logged_in = False
     if username == 'AdminPrime' and password == 'AdminPassPrime':
         admin_logged_in = True
+    
 
     user = User.query.filter_by(username=username).first()
     if user:
-        print("output",str(password.encode()))
-        if bcrypt.checkpw(password.encode(), user.password.encode(), user.salt.encode()):
-            payload = {'user_id': user.id, 'admin': admin_logged_in, 'username':username}
-            token = jwt.encode(payload, secret if not admin_logged_in else adminsecret)
-            if token is None:
-                return jsonify({'error': 'Error generating token'}), 500
-            else:
-                response = jsonify({'message': 'Successfully logged in.', 'admin_logged_in': admin_logged_in, 'token': token, 'userLogInStatus': 'LOGGED_IN'})
-                response.headers.add('Access-Control-Allow-Origin', '*')
-                return response, 200
+        if user.password == password:
+            return jsonify(success=True, message='User login successful', admin_logged_in=admin_logged_in), 200
         else:
-            response = jsonify({'message': 'Invalid password.', 'userLogInStatus': 'NOT_LOGGED_IN'})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 401
+            return jsonify(success=False, message='Incorrect password', admin_logged_in=admin_logged_in), 401
     else:
-        response = jsonify({'message': 'Invalid username.', 'userLogInStatus': 'NOT_LOGGED_IN'})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        return response, 401
-    response = jsonify({'message': 'Unauthorized access.', 'userLogInStatus': 'NOT_LOGGED_IN'})
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response, 401
+        return jsonify(success=False, message='User not found', admin_logged_in=admin_logged_in)
 
 #Blog app routes
 
