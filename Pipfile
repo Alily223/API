@@ -16,6 +16,8 @@ beautifulsoup4 = "*"
 bleach = "*"
 pyjwt = "*"
 bcrypt = "*"
+flask-bcrypt = "*"
+psycopg2 = "*"
 
 [dev-packages]
 

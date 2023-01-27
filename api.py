@@ -6,10 +6,10 @@ from flask_marshmallow import Marshmallow
 from sqlalchemy import Sequence, LargeBinary, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from functools import wraps
+from flask_bcrypt import Bcrypt
 import bleach
 import jwt
 import bcrypt
-
 import os
 
 
@@ -73,6 +73,17 @@ class Blog(db.Model):
     def __init__(self, title, description):
         self.title = title
         self.description = description
+        
+class HackerRank(db.Model):
+    id = db.Column(db.Integer, Sequence('Hackerrank_id_seq'), primary_key=True)
+    title = db.Column(db.String(200), unique=True, nullable=False)
+    code = db.Column(Text, nullable=True)
+    description = db.Column(Text, nullable=True)
+    def __init__(self, title, code,description):
+        self.title = title
+        self.code = code
+        self.description = description
+        
        
     
         
