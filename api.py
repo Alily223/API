@@ -9,13 +9,13 @@ from functools import wraps
 from flask_bcrypt import Bcrypt
 import bleach
 import jwt
-import bcrypt
 import os
 
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Rascal9013123@localhost:5032/portfolioAPI'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+bcrypt = Bcrypt(app)
 CORS(app)
 
 db = SQLAlchemy(app)
@@ -24,8 +24,8 @@ ma = Marshmallow(app)
 # Tables
 class User(db.Model):
     id = db.Column(db.Integer, Sequence('user_id_seq'), primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
+    username = db.Column(db.String(250), unique=True, nullable=False)
+    password = db.Column(db.String(250), nullable=False)
     def __init__(self, username, password):
         self.username = username
         self.password = password
@@ -129,28 +129,46 @@ def create_users_table():
         
 #middle-ware start
 
+def set_headers_post(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Methods', 'POST')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    return response
+
 #middle-ware start
 
 #User app routes 
 
 @app.route('/users/signup', methods=['POST'])
 def add_user():
+    if request.content_type != 'application/json':
+        return jsonify("Error: Data must be json")
     # Get the username and password from the request body
-    username = request.json.get('name')
-    password = request.json.get('password')
+    post_data= request.get_json()
+    username = post_data.get('username')
+    password = post_data.get('password')
 
     # Check if a user with the same username already exists
-    user = User.query.filter_by(username=username).first()
-    if user:
-        return jsonify({'userinsertmessage':'user cant create'}), 409 
-    else:
-        
-        new_user = User(username=username, password=password)
-
-        db.session.add(new_user)
-        db.session.commit()
-
-        return user_schema.jsonify(new_user)
+    username_duplicate = db.session.query(User).filter(User.username == username).first()
+    
+    if username_duplicate is not None:
+        response = jsonify('Error: The username is already registered')
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'POST')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        return response
+    
+    encrypted_password = bcrypt.generate_password_hash(password).decode('utf-8')
+    new_user = User(username, encrypted_password)
+    
+    db.session.add(new_user)
+    db.session.commit()
+    
+    response = jsonify(user_schema.dump(new_user))
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Methods', 'POST')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    return response
 
 @app.route('/users/getusers', methods=['GET'])
 def get_users():
@@ -162,22 +180,41 @@ def get_users():
 
 @app.route('/users/login', methods=['POST'])
 def login():
-    username = request.json['name']
-    password = request.json['password']
+    if request.content_type != 'application/json':
+        return jsonify('Error: Data must be json')
+    
+    post_data = request.get_json()
+    username = post_data.get('username')
+    password = post_data.get('password')
 
-    admin_logged_in = False
-    if username == 'AdminPrime' and password == 'AdminPassPrime':
-        admin_logged_in = True
+    
     
 
-    user = User.query.filter_by(username=username).first()
-    if user:
-        if user.password == password:
-            return jsonify(success=True, message='User login successful', admin_logged_in=admin_logged_in), 200
-        else:
-            return jsonify(success=False, message='Incorrect password', admin_logged_in=admin_logged_in), 401
+    user = db.session.query(User).filter(User.username == username).first()
+    
+   
+    
+    if user is None:
+        response = jsonify("user NONE EXISTENT")
+        return set_headers_post(response)
+    elif bcrypt.check_password_hash(user.password, password) == False:
+        response = jsonify("PASSWORD WRONG TRY AGAIN")
+        return set_headers_post(response)
     else:
-        return jsonify(success=False, message='User not found', admin_logged_in=admin_logged_in)
+        user_found = False
+        admin_logged_in = False
+        if username == 'AustinLily' and password == "Rascal":
+            admin_logged_in = True
+            user_found = True
+        if user :
+            user_found = True
+        elif bcrypt.check_password_hash(user.password, password) == False: 
+            user_found = False
+            response = jsonify("PASSWORD WRONG TRY AGAIN")
+            return set_headers_post(response)
+        response = jsonify({'data': user_schema.dump(user), 'admin_logged_in': admin_logged_in, 'user_found': user_found})
+        return set_headers_post(response)
+        
 
 #Blog app routes
 
