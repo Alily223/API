@@ -1,6 +1,8 @@
 import psycopg2
+from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
+from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from sqlalchemy import Sequence, LargeBinary, Text, ForeignKey
@@ -13,6 +15,7 @@ import os
 
 
 app = Flask(__name__)
+app.config.from_object(Config)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Rascal9013123@localhost:5032/portfolioAPI'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 bcrypt = Bcrypt(app)
@@ -129,6 +132,24 @@ def create_users_table():
         
 #middle-ware start
 
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if "x-access-token" in request.headers:
+            token = request.headers["x-access-token"]
+            
+        if not token:
+            return {"message": "Token is missing"}, 401
+        
+        try: 
+            data = jwt.decode(token, Config)
+        except: 
+            return {"message": "Token is inavlid"}, 401
+        
+        return f(*args, **kwargs)
+    return decorated
+
 def set_headers_post(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Methods', 'POST')
@@ -187,12 +208,7 @@ def login():
     username = post_data.get('username')
     password = post_data.get('password')
 
-    
-    
-
     user = db.session.query(User).filter(User.username == username).first()
-    
-   
     
     if user is None:
         response = jsonify("user NONE EXISTENT")
@@ -208,11 +224,22 @@ def login():
             user_found = True
         if user :
             user_found = True
+            
         elif bcrypt.check_password_hash(user.password, password) == False: 
             user_found = False
             response = jsonify("PASSWORD WRONG TRY AGAIN")
             return set_headers_post(response)
-        response = jsonify({'data': user_schema.dump(user), 'admin_logged_in': admin_logged_in, 'user_found': user_found})
+        
+        payload = {
+            "username": username,
+            "exp": datetime.utcnow() + timedelta(hours=24)
+        }
+        
+        secret = app.config["SECRET_KEY"]
+        token = jwt.encode(payload, secret, algorithm="HS256")
+        
+        response = jsonify({'token': token.decode("utf-8"),'data': user_schema.dump(user), 'admin_logged_in': admin_logged_in, 'user_found': user_found})
+        response.set_cookie('token', token.decode("utf-8"))
         return set_headers_post(response)
         
 
@@ -230,12 +257,27 @@ def get_blogs():
 
 @app.route("/blog/postblog", methods=['POST'])
 def post_blog():
-    title = request.json.get('name')
-    description = request.json.get('description')
+    if request.content_type != 'application/json':
+        return jsonify('Error: Data must be json')
+    
+    post_data = request.get_json()
+    title = post_data.get('name')
+    description = post_data.get('description')
+    
+    blog_duplicate = db.session.query(Blog).filter(Blog.title == title).first()
+    
+    if blog_duplicate is not None: 
+        response = jsonify("Blog already exists")
+        return set_headers_post(response)
+    
     new_blog = Blog(title=title, description=description)
+    
     db.session.add(new_blog)
     db.session.commit()
-    return jsonify(new_blog)
+    
+    response = jsonify(blog_schema.dump(new_blog))
+    return set_headers_post(response)
+    
 
 
 
