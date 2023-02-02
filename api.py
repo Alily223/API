@@ -1,5 +1,5 @@
 import psycopg2
-from datetime import datetime, timedelta
+import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
 from config import Config
@@ -202,45 +202,59 @@ def get_users():
 @app.route('/users/login', methods=['POST'])
 def login():
     if request.content_type != 'application/json':
-        return jsonify('Error: Data must be json')
+        return jsonify({'error': 'Data must be json'})
     
     post_data = request.get_json()
     username = post_data.get('username')
     password = post_data.get('password')
-
-    user = db.session.query(User).filter(User.username == username).first()
     
-    if user is None:
-        response = jsonify("user NONE EXISTENT")
-        return set_headers_post(response)
-    elif bcrypt.check_password_hash(user.password, password) == False:
-        response = jsonify("PASSWORD WRONG TRY AGAIN")
-        return set_headers_post(response)
-    else:
-        user_found = False
-        admin_logged_in = False
-        if username == 'AustinLily' and password == "Rascal":
-            admin_logged_in = True
-            user_found = True
-        if user :
-            user_found = True
-            
-        elif bcrypt.check_password_hash(user.password, password) == False: 
-            user_found = False
-            response = jsonify("PASSWORD WRONG TRY AGAIN")
+    token = request.headers.get("Authorization").split(" ")[1] if request.headers.get("Authorization") else None
+    if token is not None:
+        try:
+            secret = app.config["SECRET_KEY"]
+            payload = jwt.decode(token, secret, algorithms=["HS256"])
+            username = payload["username"]
+            user = db.session.query(User).filter(User.username == username).first()
+            if user:
+                response = jsonify({'message': 'User already logged in', 'data': payload})
+                return set_headers_post(response)
+            else:
+                response = jsonify({"error: ahhhh help me"})
+                return set_headers_post(response)
+        except jwt.ExpiredSignatureError:
+            response = jsonify({'error': 'Token has expired'})
             return set_headers_post(response)
+        except jwt.InvalidTokenError:
+            response = jsonify({'error': 'Token is invalid'})
+            return set_headers_post(response)
+    else:
+        user = db.session.query(User).filter(User.username == username).first()
+        if user is None:
+            response = jsonify({'error': 'user NONE EXISTENT'})
+            return set_headers_post(response)
+        elif not bcrypt.check_password_hash(user.password, password):
+            response = jsonify({'error': 'PASSWORD WRONG TRY AGAIN'})
+            return set_headers_post(response)
+        else:
+            admin_logged_in = False
+            if username == 'AustinLily' and password == "Rascal":
+                admin_logged_in = True
         
-        payload = {
-            "username": username,
-            "exp": datetime.utcnow() + timedelta(hours=24)
-        }
+            payload = {
+                "username": username,
+                "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)
+            }
         
-        secret = app.config["SECRET_KEY"]
-        token = jwt.encode(payload, secret, algorithm="HS256")
+            secret = app.config["SECRET_KEY"]
+            token = jwt.encode(payload, secret, algorithm="HS256")
         
-        response = jsonify({'token': token.decode("utf-8"),'data': user_schema.dump(user), 'admin_logged_in': admin_logged_in, 'user_found': user_found})
-        response.set_cookie('token', token.decode("utf-8"))
-        return set_headers_post(response)
+            response = jsonify({'token': token.decode("utf-8"),
+                                'data': user_schema.dump(user),
+                                'admin_logged_in': admin_logged_in,
+                                'user_found': True})
+        
+            return set_headers_post(response)
+
         
 
 #Blog app routes
