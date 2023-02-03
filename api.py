@@ -207,16 +207,26 @@ def login():
     post_data = request.get_json()
     username = post_data.get('username')
     password = post_data.get('password')
+    user = db.session.query(User).filter(User.username == username).first()
     
-    token = request.headers.get("Authorization").split(" ")[1] if request.headers.get("Authorization") else None
-    if token is not None:
+    print("the token with Bearer :" , request.headers.get('Authorization'))
+
+    if request.headers.get('Authorization') != "Bearer null":
         try:
+            token = request.headers.get('Authorization').split(' ')[1]
+            print("then token without bearer:", token)
             secret = app.config["SECRET_KEY"]
             payload = jwt.decode(token, secret, algorithms=["HS256"])
+            print("the payload:", payload)
             username = payload["username"]
+            print("username from payload:", username)
             user = db.session.query(User).filter(User.username == username).first()
             if user:
-                response = jsonify({'message': 'User already logged in', 'data': payload})
+                print("if user route")
+                admin_logged_in = False
+                if username == 'AustinLily' and password == "Rascal":
+                    admin_logged_in = True
+                response = jsonify({'message': 'User already logged in', 'data': payload, 'admin_logged_in': admin_logged_in,'user_found': True})
                 return set_headers_post(response)
             else:
                 response = jsonify({"error: ahhhh help me"})
@@ -225,35 +235,59 @@ def login():
             response = jsonify({'error': 'Token has expired'})
             return set_headers_post(response)
         except jwt.InvalidTokenError:
-            response = jsonify({'error': 'Token is invalid'})
-            return set_headers_post(response)
-    else:
-        user = db.session.query(User).filter(User.username == username).first()
+            if user is None:
+                response = jsonify({'error': 'user NONE EXISTENT'})
+                return set_headers_post(response)
+            elif not bcrypt.check_password_hash(user.password, password):
+                response = jsonify({'error': 'PASSWORD WRONG TRY AGAIN'})
+                return set_headers_post(response)
+            else:
+                print("InavlidTokenError route")
+                admin_logged_in = False
+                if username == 'AustinLily' and password == "Rascal":
+                    admin_logged_in = True
+        
+                    payload = {
+                        "username": username
+                    }
+        
+                    secret = app.config["SECRET_KEY"]
+                    token = jwt.encode(payload, secret, algorithm="HS256")
+
+                    response = jsonify({'token': token,
+                                        'data': user_schema.dump(user),
+                                        'admin_logged_in': admin_logged_in,
+                                        'user_found': True})
+        
+                    return set_headers_post(response)
+    elif request.headers.get('Authorization') == "Bearer null":
+        print("elif bearer is null so go to line 263")
         if user is None:
-            response = jsonify({'error': 'user NONE EXISTENT'})
-            return set_headers_post(response)
+                response = jsonify({'error': 'user NONE EXISTENT'})
+                return set_headers_post(response)
         elif not bcrypt.check_password_hash(user.password, password):
-            response = jsonify({'error': 'PASSWORD WRONG TRY AGAIN'})
-            return set_headers_post(response)
+                response = jsonify({'error': 'PASSWORD WRONG TRY AGAIN'})
+                return set_headers_post(response)
         else:
             admin_logged_in = False
             if username == 'AustinLily' and password == "Rascal":
                 admin_logged_in = True
+    
+                payload = {
+                    "username": username
+                }
+    
+                secret = app.config["SECRET_KEY"]
+                token = jwt.encode(payload, secret, algorithm="HS256")
+
+                response = jsonify({'token': token,
+                                    'data': user_schema.dump(user),
+                                    'admin_logged_in': admin_logged_in,
+                                    'user_found': True})
+    
+                return set_headers_post(response)
+
         
-            payload = {
-                "username": username,
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)
-            }
-        
-            secret = app.config["SECRET_KEY"]
-            token = jwt.encode(payload, secret, algorithm="HS256")
-        
-            response = jsonify({'token': token.decode("utf-8"),
-                                'data': user_schema.dump(user),
-                                'admin_logged_in': admin_logged_in,
-                                'user_found': True})
-        
-            return set_headers_post(response)
 
         
 
