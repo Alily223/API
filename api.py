@@ -174,10 +174,7 @@ def add_user():
     
     if username_duplicate is not None:
         response = jsonify('Error: The username is already registered')
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Methods', 'POST')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        return response
+        return set_headers_post(response)
     
     encrypted_password = bcrypt.generate_password_hash(password).decode('utf-8')
     new_user = User(username, encrypted_password)
@@ -186,10 +183,7 @@ def add_user():
     db.session.commit()
     
     response = jsonify(user_schema.dump(new_user))
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Methods', 'POST')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    return response
+    return set_headers_post(response)
 
 @app.route('/users/getusers', methods=['GET'])
 def get_users():
@@ -273,19 +267,19 @@ def login():
             if username == 'AustinLily' and password == "Rascal":
                 admin_logged_in = True
     
-                payload = {
-                    "username": username
-                }
+            payload = {
+                "username": username
+            }
     
-                secret = app.config["SECRET_KEY"]
-                token = jwt.encode(payload, secret, algorithm="HS256")
+            secret = app.config["SECRET_KEY"]
+            token = jwt.encode(payload, secret, algorithm="HS256")
 
-                response = jsonify({'token': token,
-                                    'data': user_schema.dump(user),
-                                    'admin_logged_in': admin_logged_in,
-                                    'user_found': True})
-    
-                return set_headers_post(response)
+            response = jsonify({'token': token,
+                                'data': user_schema.dump(user),
+                                'admin_logged_in': admin_logged_in,
+                                'user_found': True})
+
+            return set_headers_post(response)
 
         
 
