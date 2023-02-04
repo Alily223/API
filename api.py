@@ -73,9 +73,11 @@ class Blog(db.Model):
     id = db.Column(db.Integer, Sequence('Blog_id_seq'), primary_key=True)
     title = db.Column(db.String(200), unique=True, nullable=False)
     description = db.Column(Text, nullable=True)
-    def __init__(self, title, description):
+    category = db.Column(db.String(200), nullable=False)
+    def __init__(self, title, description, category):
         self.title = title
         self.description = description
+        self.category = category
         
 class HackerRank(db.Model):
     id = db.Column(db.Integer, Sequence('Hackerrank_id_seq'), primary_key=True)
@@ -305,6 +307,7 @@ def post_blog():
     post_data = request.get_json()
     title = post_data.get('name')
     description = post_data.get('description')
+    category = post_data.get('category')
     
     blog_duplicate = db.session.query(Blog).filter(Blog.title == title).first()
     
@@ -312,7 +315,7 @@ def post_blog():
         response = jsonify("Blog already exists")
         return set_headers_post(response)
     
-    new_blog = Blog(title=title, description=description)
+    new_blog = Blog(title=title, description=description, category=category)
     
     db.session.add(new_blog)
     db.session.commit()
