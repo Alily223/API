@@ -158,10 +158,9 @@ def set_headers_post(response):
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     return response
 
-def set_headers_patch(response):
+def set_headers_put(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Methods', 'PATCH')
-    response.headers.add('Access-Control-Allow-Methods', 'GET')
+    response.headers.add('Access-Control-Allow-Methods', 'PUT')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     return response
     
@@ -341,26 +340,22 @@ def delete_blog(blog_id):
     db.session.commit()
     return 'Blog post deleted', 204
 
-@app.route("/blog/edit/<int:blog_id>", methods=["GET","PATCH"])
-def edit_blog(blog_id):
-    blog = Blog.query.get(blog_id)
-    if not blog:
-        return jsonify({"error": "blog not found"}), 404
-
-    if request.method == "PATCH":
-        blog.title = request.form.get("blogtitle")
-        blog.description = request.form.get("description")
-        blog.category = request.form.get("category")
+@app.route("/updateblog/<int:blog_id>", methods=["PUT"])
+def update_blog(blog_id):
+    if request.method == "PUT":
+        post_data = request.get_json()
+        blog_title = post_data.get("name")
+        blog_category = post_data.get('category')
+        blog_description = post_data.get('description')
+        
+        blog = db.session.query(Blog).filter(Blog.id == blog_id).first()
+        blog.title = blog_title
+        blog.category = blog_category
+        blog.description = blog_description
         db.session.commit()
-        return redirect(url_for('edit_blog', blog_id=blog_id))
-
-    result = blog_schema.dump(blog)
-    for item in result:
-        # Sanitize the text and set it as the 'description' field
-        item['description'] = bleach.clean(item['description'])
-
-    response = jsonify({'blog': result})
-    return set_headers_patch(response)
+        response = jsonify("Blog has been edited")
+        return set_headers_put(response)
+        
 
 
 if __name__ == '__main__':
