@@ -340,21 +340,31 @@ def delete_blog(blog_id):
     db.session.commit()
     return 'Blog post deleted', 204
 
-@app.route("/updateblog/<int:blog_id>", methods=["PUT"])
-def update_blog(blog_id):
-    if request.method == "PUT":
-        post_data = request.get_json()
-        blog_title = post_data.get("name")
-        blog_category = post_data.get('category')
-        blog_description = post_data.get('description')
-        
-        blog = db.session.query(Blog).filter(Blog.id == blog_id).first()
-        blog.title = blog_title
-        blog.category = blog_category
-        blog.description = blog_description
+@app.route("/updateblog/<int:blog_id>", methods=["POST"])
+def edit_blog(blog_id):
+    if request.content_type != 'application/json':
+        return jsonify('Error: Data must be json')
+    
+    post_data = request.get_json()
+    description = post_data.get('description')
+    
+    if description == "":
+        print(description)
+        response = jsonify({'error': 'Description is null'})
+        return set_headers_post(response)
+    
+    blog = db.session.query(Blog).filter(Blog.id == blog_id).first()
+    
+    if blog:
+        blog.description = description
         db.session.commit()
-        response = jsonify("Blog has been edited")
-        return set_headers_put(response)
+        
+        response = jsonify(blog_schema.dump(blog))
+        return set_headers_post(response)
+    else:
+        response = jsonify({'error': 'Blog not found'})
+        set_headers_post(response)
+    
         
 
 
