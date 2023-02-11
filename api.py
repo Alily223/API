@@ -363,7 +363,7 @@ def edit_blog(blog_id):
         return set_headers_post(response)
     else:
         response = jsonify({'error': 'Blog not found'})
-        set_headers_post(response)
+        return set_headers_post(response)
     
         
 
