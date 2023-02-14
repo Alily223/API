@@ -88,10 +88,7 @@ class HackerRank(db.Model):
         self.title = title
         self.code = code
         self.description = description
-        
-       
-    
-        
+                
 # Schemas
 class BlogSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -330,9 +327,6 @@ def post_blog():
     response = jsonify(blog_schema.dump(new_blog))
     return set_headers_post(response)
     
-
-
-
 @app.route("/blog/<int:blog_id>", methods=['DELETE'])
 def delete_blog(blog_id):
     blog = Blog.query.get(blog_id)
