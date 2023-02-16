@@ -164,7 +164,7 @@ def set_headers_put(response):
 
 #middle-ware start
 
-#User app routes 
+#User app routes -------------------------------------------------------------------------------
 
 @app.route('/users/signup', methods=['POST'])
 def add_user():
@@ -291,7 +291,7 @@ def login():
 
         
 
-#Blog app routes
+#Blog app routes------------------------------------------------------------------------------
 
 @app.route("/blog/getblogs", methods=['GET'])
 def get_blogs():
@@ -360,7 +360,43 @@ def edit_blog(blog_id):
         return set_headers_post(response)
     
         
+# project app routes ------------------------------------------------------------------
 
+@app.route("/project/Add", methods=["POST"])
+def project_add():
+    if request.content_type != 'application/json':
+        return jsonify('Error: Data must be json')
+    
+    post_data = request.get_json()
+    title = post_data.get('name')
+    link = post_data.get('link')
+    category = post_data.get('category')
+    image = post_data.get('image')
+    description = post_data.get('description')
+    
+    # image_filename = image['path']
+    if image != "":
+        response = jsonify({"image", image})
+        return set_headers_post(response)
+    # with open(image_filename, 'rb') as file:
+    #     image_bytes = file.read()
+    
+    print(image)
+    
+    project_duplicate = db.session.query(Project).filter(Project.title == title).first()
+    
+    if project_duplicate is not None: 
+        response = jsonify("Project already exists")
+        return set_headers_post(response)
+    
+    new_project = Project(title=title, description=description, image=image, link=link, category=category)
+    
+    db.session.add(new_project)
+    db.session.commit()
+    
+    response = jsonify({project_schema.dump(new_project)})
+    return set_headers_post(response)
+    
 
 if __name__ == '__main__':
     create_users_table()
