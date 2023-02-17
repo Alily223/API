@@ -11,6 +11,7 @@ from functools import wraps
 from flask_bcrypt import Bcrypt
 import bleach
 import jwt
+import base64
 import os
 
 
@@ -38,7 +39,7 @@ class Project(db.Model):
     id = db.Column(db.Integer, Sequence('project_id_seq'), primary_key=True)
     title = db.Column(db.String(100), unique=True, nullable=False)
     description = db.Column(Text, nullable=True)
-    image = db.Column(LargeBinary, nullable=True)
+    image = db.Column(db.LargeBinary, nullable=True)
     link = db.Column(Text, nullable=True)
     category = db.Column(db.String(100), nullable=False)
     def __init__(self, title, description, image, link, category):
@@ -374,14 +375,17 @@ def project_add():
     image = post_data.get('image')
     description = post_data.get('description')
     
-    # image_filename = image['path']
-    if image != "":
-        response = jsonify({"image", image})
-        return set_headers_post(response)
-    # with open(image_filename, 'rb') as file:
-    #     image_bytes = file.read()
+    if image is not None:
+        image_data = bytes(image)
+        image_str = base64.b64encode(image_data).decode('utf-8')
+        image_bytes = image_str.encode('utf-8')
+    else:
+        image = None 
+        image_str = None
+        image_bytes = None
     
-    print(image)
+    # print(image)
+    # print(image_bytes)
     
     project_duplicate = db.session.query(Project).filter(Project.title == title).first()
     
@@ -389,16 +393,25 @@ def project_add():
         response = jsonify("Project already exists")
         return set_headers_post(response)
     
-    new_project = Project(title=title, description=description, image=image, link=link, category=category)
+    new_project = Project(title=title, description=description, image=image_bytes, link=link, category=category)
     
     db.session.add(new_project)
     db.session.commit()
     
-    response = jsonify({project_schema.dump(new_project)})
+    response = jsonify(project_schema.dump(new_project))
     return set_headers_post(response)
+
+@app.route("/project/GetAll", methods=["GET"])
+def project_getall():
+    all_projects = Project.query.all()
+    result = projects_schema.dump(all_projects)
+    
+    for project in result: 
+        project['description'] = bleach.clean(project['description'])
+        
+    return jsonify(result)
     
 
 if __name__ == '__main__':
     create_users_table()
     app.run(debug=True)
-
