@@ -161,6 +161,12 @@ def set_headers_put(response):
     response.headers.add('Access-Control-Allow-Methods', 'PUT')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     return response
+
+def set_header_delete(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Methods', 'DELETE')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    return response
     
 
 #middle-ware start
@@ -330,10 +336,11 @@ def post_blog():
     
 @app.route("/blog/<int:blog_id>", methods=['DELETE'])
 def delete_blog(blog_id):
-    blog = Blog.query.get(blog_id)
+    blog = Blog.query.get_or_404(blog_id)
     db.session.delete(blog)
     db.session.commit()
-    return 'Blog post deleted', 204
+    response = jsonify({'message': 'Blog deleted successfully'})
+    return set_header_delete(response)
 
 @app.route("/updateblog/<int:blog_id>", methods=["POST"])
 def edit_blog(blog_id):
@@ -410,7 +417,52 @@ def project_getall():
         project['description'] = bleach.clean(project['description'])
         
     return jsonify(result)
+
+@app.route("/projectsupdate/<int:project_id>", methods=["POST"])
+def project_update(project_id):
+    if request.content_type != 'application/json':
+        return jsonify('Error: Data must be json')
     
+    post_data = request.get_json()
+    title = post_data.get('name')
+    link = post_data.get('link')
+    category = post_data.get('category')
+    image = post_data.get('image')
+    # print(image)
+    description = post_data.get('description')
+    
+    if image is not None:
+        image_data = bytes(image)
+        image_str = base64.b64encode(image_data).decode('utf-8')
+        image_bytes = image_str.encode('utf-8')
+    else:
+        image = None 
+        image_str = None
+        image_bytes = None
+    
+    project = db.session.query(Project).filter(Project.id == project_id).first()
+    
+    if project:
+        project.title = title
+        project.description = description
+        project.image = image_bytes
+        project.link = link
+        project.category = category
+        db.session.commit()
+        
+        response = jsonify(project_schema.dump(project))
+        return set_headers_post(response)
+    else:
+        response = jsonify({"Error": "Project Non Existent"})
+        return set_headers_post(response)
+
+@app.route('/project/<int:project_id>', methods=['DELETE'])
+def delete_project(project_id):
+    project = Project.query.get_or_404(project_id)
+    db.session.delete(project)
+    db.session.commit()
+    response = jsonify({'message': 'Project deleted successfully'})
+    return set_header_delete(response)
 
 if __name__ == '__main__':
     create_users_table()
