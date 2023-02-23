@@ -22,10 +22,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object(Config)
-url = os.environ.get("DATABASE_URL")
-connection = psycopg2.connect(url)
-app.config['SQLALCHEMY_DATABASE_URI'] = url
-
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Rascal9013123@localhost:5032/portfolioAPI'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 bcrypt = Bcrypt(app)
 CORS(app)
@@ -34,24 +31,23 @@ db = SQLAlchemy(app)
 ma = Marshmallow(app)
 
 # Tables
+
 class User(db.Model):
-    id = db.Column(db.Integer, Sequence('user_id_seq'), primary_key=True)
+    user_id = db.Column(db.Integer, Sequence('user_id_seq'), primary_key=True)
     username = db.Column(db.String(250), unique=True, nullable=False)
     password = db.Column(db.String(250), nullable=False)
-    userId = db.relationship('Testimonial', backref=db.backref('User', lazy=True), cascade='all, delete, delete-orphan')
     def __init__(self, username, password):
         self.username = username
         self.password = password
-
         
 class Project(db.Model):
-    id = db.Column(db.Integer, Sequence('project_id_seq'), primary_key=True)
+    project_id = db.Column(db.Integer, Sequence('project_id_seq'), primary_key=True)
     title = db.Column(db.String(100), unique=True, nullable=False)
     description = db.Column(Text, nullable=True)
     image = db.Column(db.LargeBinary, nullable=True)
     link = db.Column(Text, nullable=True)
     category = db.Column(db.String(100), nullable=False)
-    projectId = db.relationship('Testimonial', backref=db.backref('Project',lazy=True), cascade='all, delete, delete-orphan')
+    testimonialprojectid = db.relationship('Testimonial', backref=db.backref('project',lazy=True), cascade='all, delete, delete-orphan')
     def __init__(self, title, description, image, link, category):
         self.title = title
         self.description = description
@@ -103,19 +99,24 @@ class HackerRank(db.Model):
 class Testimonial(db.Model):
     id = db.Column(db.Integer, Sequence('Testimonials_id_seq'), primary_key=True)
     testimonial_title = db.Column(db.String(200), unique=True, nullable=False)
-    projectId = db.Column(db.Integer, ForeignKey('Project.id') ,nullable=False)
-    userId = db.Column(db.Integer,ForeignKey('User.id') , nullable=False)
+    testimonialprojectid = db.Column(db.Integer, ForeignKey('project.project_id') ,nullable=False)
     stars = db.Column(db.Integer, nullable=False)
     review = db.Column(Text, nullable=True)
-    def __init__(self,testimonial_title, projectId, userId, stars, review):
+    def __init__(self,testimonial_title, testimonialprojectid, stars, review):
         self.testimonial_title = testimonial_title
-        self.projectId = projectId
-        self.userId = userId
+        self.testimonialprojectid = testimonialprojectid
         self.stars = stars
         self.review = review
         
+
+        
                 
 # Schemas
+
+class UserSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = User
+    
 class BlogSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Blog
@@ -132,32 +133,22 @@ class ProjectSchema(ma.SQLAlchemySchema):
     class Meta:
         model = Project
         
-    id = fields.Integer(dump_only=True)
+    project_id = fields.Integer(dump_only=True)
     title = fields.String(required=True)
     description = fields.String(required=True, validate=validate.Length(max=65535))
     image = Raw(required=False)
     link = fields.String(required=False, validate=validate.Length(max=65535))
     category = fields.String(required=True)
-        
-class UserSchema(ma.SQLAlchemySchema):
-    class Meta:
-        model = User
-    
-    id = fields.Integer(dump_only=True)
-    username = fields.String(required=True)
-    password = fields.String(required=True, load_only=True)
-    
-        
+                
 class TestimonialSchema(ma.SQLAlchemyAutoSchema):
-    id = ma.Nested(UserSchema)
-    id = ma.Nested(ProjectSchema)
-    userId = ma.auto_field()
-    projectId = ma.auto_field()
+    project_id = ma.Nested(ProjectSchema)
+    testimonialprojectid = ma.auto_field()
     class Meta:
         model = Testimonial
         
-Testimonial_schema = TestimonialSchema()
-Testimonial_schemas = TestimonialSchema(many=True)
+
+user_schema = UserSchema()
+users_schema = UserSchema(many=True)
         
 blog_schema = BlogSchema()
 blog_schemas = BlogSchema(many=True)
@@ -171,8 +162,10 @@ certificates_schema = CertificateSchema(many=True)
 project_schema = ProjectSchema()
 projects_schema = ProjectSchema(many=True)
 
-user_schema = UserSchema()
-users_schema = UserSchema(many=True)
+Testimonial_schema = TestimonialSchema()
+Testimonial_schemas = TestimonialSchema(many=True)
+
+
 
 def create_users_table():
     with app.app_context():
