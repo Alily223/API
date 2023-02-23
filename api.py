@@ -5,19 +5,27 @@ from flask_cors import CORS, cross_origin
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from marshmallow import fields, validate
+from marshmallow.fields import Raw
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 from sqlalchemy import Sequence, LargeBinary, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from functools import wraps
 from flask_bcrypt import Bcrypt
+from dotenv import load_dotenv
 import bleach
 import jwt
 import base64
 import os
 
+load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object(Config)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Rascal9013123@localhost:5032/portfolioAPI'
+url = os.environ.get("DATABASE_URL")
+connection = psycopg2.connect(url)
+app.config['SQLALCHEMY_DATABASE_URI'] = url
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 bcrypt = Bcrypt(app)
 CORS(app)
@@ -30,6 +38,7 @@ class User(db.Model):
     id = db.Column(db.Integer, Sequence('user_id_seq'), primary_key=True)
     username = db.Column(db.String(250), unique=True, nullable=False)
     password = db.Column(db.String(250), nullable=False)
+    userId = db.relationship('Testimonial', backref=db.backref('User', lazy=True), cascade='all, delete, delete-orphan')
     def __init__(self, username, password):
         self.username = username
         self.password = password
@@ -42,6 +51,7 @@ class Project(db.Model):
     image = db.Column(db.LargeBinary, nullable=True)
     link = db.Column(Text, nullable=True)
     category = db.Column(db.String(100), nullable=False)
+    projectId = db.relationship('Testimonial', backref=db.backref('Project',lazy=True), cascade='all, delete, delete-orphan')
     def __init__(self, title, description, image, link, category):
         self.title = title
         self.description = description
@@ -89,6 +99,21 @@ class HackerRank(db.Model):
         self.title = title
         self.code = code
         self.description = description
+        
+class Testimonial(db.Model):
+    id = db.Column(db.Integer, Sequence('Testimonials_id_seq'), primary_key=True)
+    testimonial_title = db.Column(db.String(200), unique=True, nullable=False)
+    projectId = db.Column(db.Integer, ForeignKey('Project.id') ,nullable=False)
+    userId = db.Column(db.Integer,ForeignKey('User.id') , nullable=False)
+    stars = db.Column(db.Integer, nullable=False)
+    review = db.Column(Text, nullable=True)
+    def __init__(self,testimonial_title, projectId, userId, stars, review):
+        self.testimonial_title = testimonial_title
+        self.projectId = projectId
+        self.userId = userId
+        self.stars = stars
+        self.review = review
+        
                 
 # Schemas
 class BlogSchema(ma.SQLAlchemyAutoSchema):
@@ -102,13 +127,37 @@ class CertificateSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Certificate
         
-class ProjectSchema(ma.SQLAlchemyAutoSchema):
+class ProjectSchema(ma.SQLAlchemySchema):
+    
     class Meta:
         model = Project
         
-class UserSchema(ma.SQLAlchemyAutoSchema):
+    id = fields.Integer(dump_only=True)
+    title = fields.String(required=True)
+    description = fields.String(required=True, validate=validate.Length(max=65535))
+    image = Raw(required=False)
+    link = fields.String(required=False, validate=validate.Length(max=65535))
+    category = fields.String(required=True)
+        
+class UserSchema(ma.SQLAlchemySchema):
     class Meta:
         model = User
+    
+    id = fields.Integer(dump_only=True)
+    username = fields.String(required=True)
+    password = fields.String(required=True, load_only=True)
+    
+        
+class TestimonialSchema(ma.SQLAlchemyAutoSchema):
+    id = ma.Nested(UserSchema)
+    id = ma.Nested(ProjectSchema)
+    userId = ma.auto_field()
+    projectId = ma.auto_field()
+    class Meta:
+        model = Testimonial
+        
+Testimonial_schema = TestimonialSchema()
+Testimonial_schemas = TestimonialSchema(many=True)
         
 blog_schema = BlogSchema()
 blog_schemas = BlogSchema(many=True)

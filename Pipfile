@@ -18,6 +18,7 @@ pyjwt = "*"
 bcrypt = "*"
 flask-bcrypt = "*"
 psycopg2 = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
