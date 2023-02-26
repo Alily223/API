@@ -48,6 +48,7 @@ class Project(db.Model):
     link = db.Column(Text, nullable=True)
     category = db.Column(db.String(100), nullable=False)
     testimonialprojectid = db.relationship('Testimonial', backref=db.backref('project',lazy=True), cascade='all, delete, delete-orphan')
+    publishedtestimonialprojectid = db.relationship('Publishedtestimonial',  backref=db.backref('project',lazy=True), cascade='all, delete, delete-orphan')
     def __init__(self, title, description, image, link, category):
         self.title = title
         self.description = description
@@ -91,15 +92,31 @@ class Testimonial(db.Model):
     testimonialprojectid = db.Column(db.Integer, ForeignKey('project.project_id') ,nullable=False)
     stars = db.Column(db.Integer, nullable=False)
     review = db.Column(Text, nullable=True)
+    testimonial_username = db.Column(db.String(200), nullable=False)
     twelvedigitcode = db.Column(db.String(12), unique=True, nullable=False)
-    def __init__(self,testimonial_title, testimonialprojectid, stars, review, twelvedigitcode):
+    def __init__(self,testimonial_title, testimonialprojectid, stars, review, testimonial_username, twelvedigitcode):
         self.testimonial_title = testimonial_title
         self.testimonialprojectid = testimonialprojectid
         self.stars = stars
         self.review = review
+        self.testimonial_username = testimonial_username
         self.twelvedigitcode = twelvedigitcode
         
-
+class Publishedtestimonial(db.Model):
+    id = db.Column(db.Integer, Sequence('Testimonials_id_seq'), primary_key=True)
+    publishedtestimonial_title = db.Column(db.String(200), unique=True, nullable=False)
+    publishedtestimonialprojectid = db.Column(db.Integer, ForeignKey('project.project_id') ,nullable=False)
+    stars = db.Column(db.Integer, nullable=False)
+    review = db.Column(Text, nullable=True)
+    testimonial_username = db.Column(db.String(200), nullable=False)
+    twelvedigitcode = db.Column(db.String(12), unique=True, nullable=False)
+    def __init__(self,testimonial_title, testimonialprojectid, stars, review, testimonial_username, twelvedigitcode):
+        self.testimonial_title = testimonial_title
+        self.testimonialprojectid = testimonialprojectid
+        self.stars = stars
+        self.review = review
+        self.testimonial_username = testimonial_username
+        self.twelvedigitcode = twelvedigitcode
         
                 
 # Schemas
@@ -133,6 +150,11 @@ class TestimonialSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Testimonial
         
+class PublishedtestimonialSchema(ma.SQLAlchemyAutoSchema):
+    project_id = ma.Nested(ProjectSchema)
+    publishedtestimonialprojectid = ma.auto_field()
+    class Meta:
+        model = Publishedtestimonial
 
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
@@ -148,6 +170,9 @@ projects_schema = ProjectSchema(many=True)
 
 Testimonial_schema = TestimonialSchema()
 Testimonial_schemas = TestimonialSchema(many=True)
+
+Publishedtestimonial_schema = PublishedtestimonialSchema()
+Publishedtestimonial_schemas = PublishedtestimonialSchema(many=True)
 
 
 def create_users_table():
