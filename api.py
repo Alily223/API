@@ -44,7 +44,7 @@ class Project(db.Model):
     project_id = db.Column(db.Integer, Sequence('project_id_seq'), primary_key=True)
     title = db.Column(db.String(100), unique=True, nullable=False)
     description = db.Column(Text, nullable=True)
-    image = db.Column(db.LargeBinary, nullable=True)
+    image = db.Column(Text, nullable=True)
     link = db.Column(Text, nullable=True)
     category = db.Column(db.String(100), nullable=False)
     testimonialprojectid = db.relationship('Testimonial', backref=db.backref('project',lazy=True), cascade='all, delete, delete-orphan')
@@ -59,22 +59,11 @@ class Certificate(db.Model):
     id = db.Column(db.Integer, Sequence('Certificate_id_seq'), primary_key=True)
     title = db.Column(db.String(200), unique=True, nullable=False)
     description = db.Column(Text, nullable=True)
-    image = db.Column(LargeBinary, nullable=True)
+    image = db.Column(Text, nullable=True)
     def __init__(self, title, description, image):
         self.title = title
         self.description = description 
         self.image = image
-   
-
-class UnfinishedProj(db.Model):
-    id = db.Column(db.Integer, Sequence('UnfinishedProj_id_seq'), primary_key=True)
-    title = db.Column(db.String(200), unique=True, nullable=False)
-    description = db.Column(Text, nullable=True)
-    progress = db.Column(db.Integer, nullable=True)
-    def __init__(self, title, description, progress):
-        self.title = title
-        self.description = description
-        self.progress = progress
         
 class Blog(db.Model):
     id = db.Column(db.Integer, Sequence('Blog_id_seq'), primary_key=True)
@@ -102,11 +91,13 @@ class Testimonial(db.Model):
     testimonialprojectid = db.Column(db.Integer, ForeignKey('project.project_id') ,nullable=False)
     stars = db.Column(db.Integer, nullable=False)
     review = db.Column(Text, nullable=True)
-    def __init__(self,testimonial_title, testimonialprojectid, stars, review):
+    twelvedigitcode = db.Column(db.String(12), unique=True, nullable=False)
+    def __init__(self,testimonial_title, testimonialprojectid, stars, review, twelvedigitcode):
         self.testimonial_title = testimonial_title
         self.testimonialprojectid = testimonialprojectid
         self.stars = stars
         self.review = review
+        self.twelvedigitcode = twelvedigitcode
         
 
         
@@ -120,10 +111,6 @@ class UserSchema(ma.SQLAlchemyAutoSchema):
 class BlogSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Blog
-
-class UnfinishedProjSchema(ma.SQLAlchemyAutoSchema):
-    class Meta:
-        model = UnfinishedProj
 class CertificateSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Certificate
@@ -136,7 +123,7 @@ class ProjectSchema(ma.SQLAlchemySchema):
     project_id = fields.Integer(dump_only=True)
     title = fields.String(required=True)
     description = fields.String(required=True, validate=validate.Length(max=65535))
-    image = Raw(required=False)
+    image = fields.String(required=False)
     link = fields.String(required=False, validate=validate.Length(max=65535))
     category = fields.String(required=True)
                 
@@ -152,9 +139,6 @@ users_schema = UserSchema(many=True)
         
 blog_schema = BlogSchema()
 blog_schemas = BlogSchema(many=True)
-        
-unfinishedProj_schema = UnfinishedProjSchema()
-unfinishedProj_schemas = UnfinishedProjSchema(many=True)
        
 certificate_schema = CertificateSchema()
 certificates_schema = CertificateSchema(many=True)
@@ -164,7 +148,6 @@ projects_schema = ProjectSchema(many=True)
 
 Testimonial_schema = TestimonialSchema()
 Testimonial_schemas = TestimonialSchema(many=True)
-
 
 
 def create_users_table():
@@ -423,18 +406,22 @@ def project_add():
     category = post_data.get('category')
     image = post_data.get('image')
     description = post_data.get('description')
+    #print(image)
     
     if image is not None:
         image_data = bytes(image)
+        #print(image_data)
         image_str = base64.b64encode(image_data).decode('utf-8')
-        image_bytes = image_str.encode('utf-8')
     else:
         image = None 
         image_str = None
-        image_bytes = None
+        
+    dict_for_image_bytes = {'ImageBytes': image_str}
+    json_for_image = json.dumps(dict_for_image_bytes)
+    #print(dict_for_image_bytes)
     
-    # print(image)
-    # print(image_bytes)
+    
+    #print(len(image_bytes))
     
     project_duplicate = db.session.query(Project).filter(Project.title == title).first()
     
@@ -442,7 +429,7 @@ def project_add():
         response = jsonify("Project already exists")
         return set_headers_post(response)
     
-    new_project = Project(title=title, description=description, image=image_bytes, link=link, category=category)
+    new_project = Project(title=title, description=description, image=json_for_image, link=link, category=category)
     
     db.session.add(new_project)
     db.session.commit()
@@ -460,8 +447,8 @@ def project_getall():
         
     return jsonify(result)
 
-@app.route("/projectsupdate/<int:project_id>", methods=["POST"])
-def project_update(project_id):
+@app.route("/projectsupdate/<int:project_id_sent>", methods=["POST"])
+def project_update(project_id_sent):
     if request.content_type != 'application/json':
         return jsonify('Error: Data must be json')
     
@@ -475,19 +462,22 @@ def project_update(project_id):
     
     if image is not None:
         image_data = bytes(image)
+        #print(image_data)
         image_str = base64.b64encode(image_data).decode('utf-8')
-        image_bytes = image_str.encode('utf-8')
     else:
-        image = None 
-        image_str = None
-        image_bytes = None
+        image_data = bytes(image)
+        #print(image_data)
+        image_str = base64.b64encode(image_data).decode('utf-8')
+        
+    dict_for_image_bytes = {'ImageBytes': image_str}
+    json_for_image = json.dumps(dict_for_image_bytes)
     
-    project = db.session.query(Project).filter(Project.id == project_id).first()
+    project = db.session.query(Project).filter(Project.project_id == project_id_sent).first()
     
     if project:
         project.title = title
         project.description = description
-        project.image = image_bytes
+        project.image = json_for_image
         project.link = link
         project.category = category
         db.session.commit()
