@@ -93,7 +93,7 @@ class Testimonial(db.Model):
     stars = db.Column(db.Integer, nullable=False)
     review = db.Column(Text, nullable=True)
     testimonial_username = db.Column(db.String(200), nullable=False)
-    twelvedigitcode = db.Column(db.String(12), unique=True, nullable=False)
+    twelvedigitcode = db.Column(db.String(14), unique=True, nullable=False)
     def __init__(self,testimonial_title, testimonialprojectid, stars, review, testimonial_username, twelvedigitcode):
         self.testimonial_title = testimonial_title
         self.testimonialprojectid = testimonialprojectid
@@ -521,6 +521,59 @@ def delete_project(project_id):
     response = jsonify({'message': 'Project deleted successfully'})
     return set_header_delete(response)
 
+# testimonial / published testimonial app routes ------------------------------------------------------------------
+
+@app.route('/testimonialunpblished/add', methods=['POST'])
+def testiomonialAdd():
+    if request.content_type != 'application/json':
+        return jsonify('Error: Data must be json')
+    
+    post_data = request.get_json()
+    title = post_data.get('title')
+    projectid = post_data.get('pid')
+    stars = post_data.get('stars')
+    username = post_data.get('username')
+    twelvedigcode = post_data.get('code')
+    description = post_data.get('description')
+    
+    testimonial_duplicate = db.session.query(Testimonial).filter(Testimonial.testimonial_title == title).first()
+    code_duplicate = db.session.query(Testimonial).filter(Testimonial.twelvedigitcode == twelvedigcode).first()\
+    
+    if testimonial_duplicate is not None:
+        response = jsonify("Testimonial already exists")
+        return set_headers_post(response)
+    
+    if code_duplicate is not None:
+        response = jsonify("Twelve Digit Code already exists")
+        return set_headers_post(response)
+    
+    new_testimonial = Testimonial(testimonial_title=title, testimonialprojectid=projectid, stars=stars, review=description, testimonial_username=username, twelvedigitcode=twelvedigcode)
+    
+    db.session.add(new_testimonial)
+    db.session.commit()
+    
+    response = jsonify(Testimonial_schema.dump(new_testimonial))
+    return set_headers_post(response)
+
+@app.route('/testimonialunpublished/getall', methods=['GET'])
+def testimonialgetall():
+    all_testimonials = Testimonial.query.all()
+    result = Testimonial_schemas.dump(all_testimonials)
+    
+    for testimonial in result:
+        testimonial['review'] = bleach.clean(testimonial['review'])
+        
+    return jsonify(result)
+
+@app.route('/testimonialunpublished/delete/<int:testimonial_id>', methods=['DELETE'])
+def testimonialdelete(testimonial_id):
+    testimonial = Testimonial.query.get_or_404(testimonial_id)
+    db.session.delete(testimonial)
+    db.session.commit()
+    response = jsonify({'message': 'Testimonial deleted successfully'})
+    return set_header_delete(response)
+    
+    
 if __name__ == '__main__':
     create_users_table()
     app.run(debug=True)
