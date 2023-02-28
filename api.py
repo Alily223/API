@@ -537,7 +537,7 @@ def testiomonialAdd():
     description = post_data.get('description')
     
     testimonial_duplicate = db.session.query(Testimonial).filter(Testimonial.testimonial_title == title).first()
-    code_duplicate = db.session.query(Testimonial).filter(Testimonial.twelvedigitcode == twelvedigcode).first()\
+    code_duplicate = db.session.query(Testimonial).filter(Testimonial.twelvedigitcode == twelvedigcode).first()
     
     if testimonial_duplicate is not None:
         response = jsonify("Testimonial already exists")
@@ -573,7 +573,53 @@ def testimonialdelete(testimonial_id):
     response = jsonify({'message': 'Testimonial deleted successfully'})
     return set_header_delete(response)
     
+@app.route('/testimonialpublished/grabforedit/<int:testimonial_id>', methods=['POST'])
+def testimonialedit(testimonial_id):
+    if request.content_type != 'application/json':
+        return jsonify('Error: Data must be json')
+    
+    post_data = request.get_json()
+    title = post_data.get('title')
+    projectid = post_data.get('pid')
+    stars = post_data.get('stars')
+    username = post_data.get('username')
+    description = post_data.get('description')
+    
+    testimonial = db.session.query(Testimonial).filter(Testimonial.id == testimonial_id).first()
+    
+    # print(testimonial)
+    
+    if testimonial:
+        testimonial.testimonial_title = title
+        testimonial.testimonialprojectid = projectid
+        testimonial.stars = stars
+        testimonial.review = description
+        testimonial.testimonial_username = username
+        db.session.commit()
+        
+        response = jsonify(Testimonial_schema.dump(testimonial))
+        # print(response)
+        return set_headers_post(response)
+    else:
+        response = jsonify({"Error": "Testimonial Non Existent"})
+        # print(response)
+        return set_headers_post(response)
+        
+        
+@app.route('/testimonialpublished/grabforuser/<string:testimonial_code>', methods=['GET'])    
+def grabTestimonialByReferredCode(testimonial_code):
+    testimonial = Testimonial.query.filter_by(twelvedigitcode=testimonial_code).first()
+    
+    if not testimonial:
+        return jsonify({'message': 'Testimonial not found.'})
+    
+    result = Testimonial_schema.dump(testimonial)
+    
+    return(result)
+        
     
 if __name__ == '__main__':
     create_users_table()
     app.run(debug=True)
+    
+    
