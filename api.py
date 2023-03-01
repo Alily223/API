@@ -109,10 +109,10 @@ class Publishedtestimonial(db.Model):
     stars = db.Column(db.Integer, nullable=False)
     review = db.Column(Text, nullable=True)
     testimonial_username = db.Column(db.String(200), nullable=False)
-    twelvedigitcode = db.Column(db.String(12), unique=True, nullable=False)
-    def __init__(self,testimonial_title, testimonialprojectid, stars, review, testimonial_username, twelvedigitcode):
-        self.testimonial_title = testimonial_title
-        self.testimonialprojectid = testimonialprojectid
+    twelvedigitcode = db.Column(db.String(14), unique=True, nullable=False)
+    def __init__(self,publishedtestimonial_title, publishedtestimonialprojectid, stars, review, testimonial_username, twelvedigitcode):
+        self.publishedtestimonial_title = publishedtestimonial_title
+        self.publishedtestimonialprojectid = publishedtestimonialprojectid
         self.stars = stars
         self.review = review
         self.testimonial_username = testimonial_username
@@ -616,6 +616,33 @@ def grabTestimonialByReferredCode(testimonial_code):
     result = Testimonial_schema.dump(testimonial)
     
     return(result)
+
+@app.route('/sendtopublishedtestimonials/add', methods=['POST'])
+def sendtopublishedtestimonials():
+    if request.content_type != 'application/json':
+        return jsonify('Error: Data must be json')
+    
+    post_data = request.get_json()
+    title = post_data.get('title')
+    projectid = post_data.get('pid')
+    stars = post_data.get('stars')
+    username = post_data.get('username')
+    twelvedigcode = post_data.get('code')
+    description = post_data.get('description')
+    
+    testimonial_duplicate = db.session.query(Publishedtestimonial).filter(Publishedtestimonial.publishedtestimonial_title == title).first()
+    
+    if testimonial_duplicate is not None:
+        response = jsonify("Testimonial already exists")
+        return set_headers_post(response)
+    
+    new_published_testimonial = Publishedtestimonial(publishedtestimonial_title=title, publishedtestimonialprojectid=projectid, stars=stars, review=description, testimonial_username=username, twelvedigitcode=twelvedigcode)
+    
+    db.session.add(new_published_testimonial)
+    db.session.commit()
+    
+    response = jsonify(Publishedtestimonial_schema.dump(new_published_testimonial))
+    return set_headers_post(response)
         
     
 if __name__ == '__main__':
