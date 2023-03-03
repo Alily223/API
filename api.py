@@ -217,6 +217,12 @@ def set_header_delete(response):
     response.headers.add('Access-Control-Allow-Methods', 'DELETE')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     return response
+
+def set_header_get(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Methods', 'GET')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    return response
     
 
 #middle-ware start
@@ -253,7 +259,8 @@ def get_users():
     all_users = User.query.all()
     result = users_schema.dump(all_users)
 
-    return jsonify(result)
+    response = jsonify(result)
+    return set_header_get(response)
 
 
 @app.route('/users/login', methods=['POST'])
@@ -358,7 +365,9 @@ def get_blogs():
     for blog in result:
         # Sanitize the text and set it as the 'description' field
         blog['description'] = bleach.clean(blog['description'])
-    return jsonify(result)
+        
+    response = jsonify(result)
+    return set_header_get(response)
 
 @app.route("/blog/postblog", methods=['POST'])
 def post_blog():
@@ -469,8 +478,9 @@ def project_getall():
     
     for project in result: 
         project['description'] = bleach.clean(project['description'])
-        
-    return jsonify(result)
+    
+    response = jsonify(result)
+    return set_header_get(response)
 
 @app.route("/projectsupdate/<int:project_id_sent>", methods=["POST"])
 def project_update(project_id_sent):
@@ -562,8 +572,9 @@ def testimonialgetall():
     
     for testimonial in result:
         testimonial['review'] = bleach.clean(testimonial['review'])
-        
-    return jsonify(result)
+    
+    response = jsonify(result)
+    return set_header_get(response)
 
 @app.route('/testimonialunpublished/delete/<int:testimonial_id>', methods=['DELETE'])
 def testimonialdelete(testimonial_id):
@@ -606,7 +617,7 @@ def testimonialedit(testimonial_id):
         return set_headers_post(response)
         
         
-@app.route('/testimonialpublished/grabforuser/<string:testimonial_code>', methods=['GET'])    
+@app.route('/testimonialpublished/grabforuser/<string:testimonial_code>', methods=['GET']) 
 def grabTestimonialByReferredCode(testimonial_code):
     testimonial = Testimonial.query.filter_by(twelvedigitcode=testimonial_code).first()
     
@@ -615,7 +626,9 @@ def grabTestimonialByReferredCode(testimonial_code):
     
     result = Testimonial_schema.dump(testimonial)
     
-    return(result)
+    response = result
+    
+    return set_header_get(response)
 
 @app.route('/sendtopublishedtestimonials/add', methods=['POST'])
 def sendtopublishedtestimonials():
