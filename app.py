@@ -18,21 +18,21 @@ import jwt
 import base64
 import os
 
-Witness = Flask(__name__)
+app = Flask(__name__)
 
 load_dotenv()
 
 database_grab = os.getenv('DATABASE_URL')
 
 
-Witness.config.from_object(Config)
-Witness.config['SQLALCHEMY_DATABASE_URI'] = f'{database_grab}'
-Witness.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-bcrypt = Bcrypt(Witness)
-CORS(Witness)
+app.config.from_object(Config)
+app.config['SQLALCHEMY_DATABASE_URI'] = f'{database_grab}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+bcrypt = Bcrypt(app)
+CORS(app)
 
-db = SQLAlchemy(Witness)
-ma = Marshmallow(Witness)
+db = SQLAlchemy(app)
+ma = Marshmallow(app)
 
 # Tables
 
@@ -664,4 +664,4 @@ def sendtopublishedtestimonials():
     
 if __name__ == '__main__':
     create_users_table()
-    Witness.run(debug=True)
+    app.run(debug=True)
