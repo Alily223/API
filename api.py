@@ -20,9 +20,11 @@ import os
 
 load_dotenv()
 
+database_grab = os.getenv('DATABASE_URL')
+
 app = Flask(__name__)
 app.config.from_object(Config)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Rascal9013123@localhost:5032/portfolioAPI'
+app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{database_grab}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 bcrypt = Bcrypt(app)
 CORS(app)
