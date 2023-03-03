@@ -13,7 +13,6 @@ from sqlalchemy.orm import relationship
 from functools import wraps
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
-from app import app
 import bleach
 import jwt
 import base64
