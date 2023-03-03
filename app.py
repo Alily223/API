@@ -18,11 +18,13 @@ import jwt
 import base64
 import os
 
+app = Flask(__name__)
+
 load_dotenv()
 
 database_grab = os.getenv('DATABASE_URL')
 
-app = Flask(__name__)
+
 app.config.from_object(Config)
 app.config['SQLALCHEMY_DATABASE_URI'] = f'{database_grab}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -663,5 +665,3 @@ def sendtopublishedtestimonials():
 if __name__ == '__main__':
     create_users_table()
     app.run(debug=True)
-    
-    
