@@ -1,1 +1,1 @@
-web: gunicorn app:Witness
+web: pipenv run gunicorn app:Witness
