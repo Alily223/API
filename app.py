@@ -27,7 +27,7 @@ def create_app():
 
 
     app.config.from_object(Config)
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://qziilkqfnrhknl:308cf4d03d0fb15dbea72dab9675e9d49c3df0f'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://qziilkqfnrhknl:308cf4d03d0fb15dbea72dab9675e9d49c3df0f1d0967ee12a74a06b98174eb8@ec2-52-54-212-232.compute-1.amazonaws.com:5432/dedml2sbeql541'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     bcrypt = Bcrypt(app)
     CORS(app)
