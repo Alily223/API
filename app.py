@@ -17,6 +17,9 @@ import jwt
 import base64
 import os
 
+db = SQLAlchemy()
+ma = Marshmallow()
+
 def create_app():
 
     app = Flask(__name__)
@@ -31,9 +34,10 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     bcrypt = Bcrypt(app)
     CORS(app)
-
-    db = SQLAlchemy(app)
-    ma = Marshmallow(app)
+    
+    db.init_app(app)
+    
+    ma.init_app(app)
 
     # Tables
 
