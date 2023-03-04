@@ -1,4 +1,3 @@
-import psycopg2-binary
 import json
 from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_cors import CORS, cross_origin
