@@ -1,1 +1,1 @@
-web: pipenv shell pipenv install && python wsgi.py
+web: waitress-serve --call wsgi.py

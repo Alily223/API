@@ -29,6 +29,7 @@ typing-extensions = "==4.5.0"
 webencodings = "==0.5.1"
 werkzeug = "==2.2.3"
 psycopg2-binary = "*"
+waitress = "*"
 
 [dev-packages]
 
