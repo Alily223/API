@@ -1,1 +1,1 @@
-web: pipenv run pipenv install -r requiremnts.txt && gunicorn wsgi:app
+web: pipenv run pipenv install && gunicorn wsgi:app
