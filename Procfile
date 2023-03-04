@@ -1,1 +1,1 @@
-web: pipenv run pip install && gunicorn wsgi:app
+web: gunicorn wsgi:app
