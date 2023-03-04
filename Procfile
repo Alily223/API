@@ -1,1 +1,1 @@
-web: waitress-serve --port-$PORT wsgi:app
+web: python wsgi.py
