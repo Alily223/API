@@ -1,1 +1,1 @@
-web: gunicorn --workers=2 wsgi:app
+web: waitress-serve --port-$PORT wsgi:app
