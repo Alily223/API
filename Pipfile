@@ -4,6 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+psycopg2 = "*"
 flask = "==2.2.3"
 flask-cors = "==3.0.10"
 flask-sqlalchemy = "==3.0.3"
@@ -28,8 +29,8 @@ soupsieve = "==2.4"
 typing-extensions = "==4.5.0"
 webencodings = "==0.5.1"
 werkzeug = "==2.2.3"
-psycopg2-binary = "*"
-waitress = "*"
+gunicorn = "*"
+
 
 [dev-packages]
 
