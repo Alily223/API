@@ -661,6 +661,25 @@ def sendtopublishedtestimonials():
     
     response = jsonify(Publishedtestimonial_schema.dump(new_published_testimonial))
     return set_headers_post(response)
+
+@app.route('/truepublishedtestimonials/getall', methods=['GET'])
+def getallpublishedtestimonials():
+    all_published_testimonials = Publsihedtestimonial.query.all()
+    result = Testimonial_schemas.dump(all_published_testimonials)
+    
+    for testimonial in result:
+        testimonial['review'] = bleach.clean(testimonial['review'])
+    
+    response = jsonify(result)
+    return set_header_get(response)
+
+@app.route('/truepublishedtestimonials/<int:testimonial_id>', methods=['DELETE'])
+def deletepublishedtestimonial(testimonial_id):
+    published_testimonial = Publsihedtestimonial.query.get_or_404(testimonial_id)
+    db.session.delete(published_testimonial)
+    db.session.commit()
+    response = jsonify({'message': 'Testimonial deleted successfully'})
+    return set_header_delete(response)
         
     
 if __name__ == '__main__':
