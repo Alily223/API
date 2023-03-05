@@ -664,7 +664,7 @@ def sendtopublishedtestimonials():
 
 @app.route('/truepublishedtestimonials/getall', methods=['GET'])
 def getallpublishedtestimonials():
-    all_published_testimonials = Publsihedtestimonial.query.all()
+    all_published_testimonials = Publishedtestimonial.query.all()
     result = Testimonial_schemas.dump(all_published_testimonials)
     
     for testimonial in result:
@@ -675,7 +675,7 @@ def getallpublishedtestimonials():
 
 @app.route('/truepublishedtestimonials/<int:testimonial_id>', methods=['DELETE'])
 def deletepublishedtestimonial(testimonial_id):
-    published_testimonial = Publsihedtestimonial.query.get_or_404(testimonial_id)
+    published_testimonial = Publishedtestimonial.query.get_or_404(testimonial_id)
     db.session.delete(published_testimonial)
     db.session.commit()
     response = jsonify({'message': 'Testimonial deleted successfully'})
