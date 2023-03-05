@@ -115,9 +115,9 @@ class Publishedtestimonial(db.Model):
     review = db.Column(Text, nullable=True)
     testimonial_username = db.Column(db.String(200), nullable=False)
     twelvedigitcode = db.Column(db.String(14), unique=True, nullable=False)
-    def __init__(self,publishedtestimonial_title, publishedtestimonialprojectid, stars, review, testimonial_username, twelvedigitcode):
-        self.publishedtestimonial_title = publishedtestimonial_title
-        self.publishedtestimonialprojectid = publishedtestimonialprojectid
+    def __init__(self,publishedtitle, publishedtitle, stars, review, testimonial_username, twelvedigitcode):
+        self.publishedtitle = publishedtitle
+        self.publishedprojectid = publishedprojectid
         self.stars = stars
         self.review = review
         self.testimonial_username = testimonial_username
@@ -648,13 +648,13 @@ def sendtopublishedtestimonials():
     twelvedigcode = post_data.get('code')
     description = post_data.get('description')
     
-    testimonial_duplicate = db.session.query(Publishedtestimonial).filter(Publishedtestimonial.publishedtestimonial_title == title).first()
+    testimonial_duplicate = db.session.query(Publishedtestimonial).filter(Publishedtestimonial.publishedtitle == title).first()
     
     if testimonial_duplicate is not None:
         response = jsonify("Testimonial already exists")
         return set_headers_post(response)
     
-    new_published_testimonial = Publishedtestimonial(publishedtestimonial_title=title, publishedtestimonialprojectid=projectid, stars=stars, review=description, testimonial_username=username, twelvedigitcode=twelvedigcode)
+    new_published_testimonial = Publishedtestimonial(publishedtitle=title, publishedprojectid=projectid, stars=stars, review=description, testimonial_username=username, twelvedigitcode=twelvedigcode)
     
     db.session.add(new_published_testimonial)
     db.session.commit()
