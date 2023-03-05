@@ -665,7 +665,7 @@ def sendtopublishedtestimonials():
 @app.route('/truepublishedtestimonials/getall', methods=['GET'])
 def getallpublishedtestimonials():
     all_published_testimonials = Publishedtestimonial.query.all()
-    result = Testimonial_schemas.dump(all_published_testimonials)
+    result = Publishedtestimonial_schemas.dump(all_published_testimonials)
     
     for testimonial in result:
         testimonial['review'] = bleach.clean(testimonial['review'])
