@@ -115,7 +115,7 @@ class Publishedtestimonial(db.Model):
     review = db.Column(Text, nullable=True)
     testimonial_username = db.Column(db.String(200), nullable=False)
     twelvedigitcode = db.Column(db.String(14), unique=True, nullable=False)
-    def __init__(self,publishedtitle, publishedtitle, stars, review, testimonial_username, twelvedigitcode):
+    def __init__(self,publishedtitle, publishedprojectid, stars, review, testimonial_username, twelvedigitcode):
         self.publishedtitle = publishedtitle
         self.publishedprojectid = publishedprojectid
         self.stars = stars
