@@ -53,7 +53,7 @@ class Project(db.Model):
     link = db.Column(Text, nullable=True)
     category = db.Column(db.String(100), nullable=False)
     testimonialprojectid = db.relationship('Testimonial', backref=db.backref('project',lazy=True), cascade='all, delete, delete-orphan')
-    publishedtestimonialprojectid = db.relationship('Publishedtestimonial',  backref=db.backref('project',lazy=True), cascade='all, delete, delete-orphan')
+    publishedprojectid = db.relationship('Publishedtestimonial',  backref=db.backref('project',lazy=True), cascade='all, delete, delete-orphan')
     def __init__(self, title, description, image, link, category):
         self.title = title
         self.description = description
@@ -109,8 +109,8 @@ class Testimonial(db.Model):
         
 class Publishedtestimonial(db.Model):
     id = db.Column(db.Integer, Sequence('Testimonials_id_seq'), primary_key=True)
-    publishedtestimonial_title = db.Column(db.String(200), unique=True, nullable=False)
-    publishedtestimonialprojectid = db.Column(db.Integer, ForeignKey('project.project_id') ,nullable=False)
+    publishedtitle = db.Column(db.String(200), unique=True, nullable=False)
+    publishedprojectid = db.Column(db.Integer, ForeignKey('project.project_id') ,nullable=False)
     stars = db.Column(db.Integer, nullable=False)
     review = db.Column(Text, nullable=True)
     testimonial_username = db.Column(db.String(200), nullable=False)
@@ -157,7 +157,7 @@ class TestimonialSchema(ma.SQLAlchemyAutoSchema):
         
 class PublishedtestimonialSchema(ma.SQLAlchemyAutoSchema):
     project_id = ma.Nested(ProjectSchema)
-    publishedtestimonialprojectid = ma.auto_field()
+    publishedprojectid = ma.auto_field()
     class Meta:
         model = Publishedtestimonial
 
