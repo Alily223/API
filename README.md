@@ -1,5 +1,7 @@
 # APP.PY functionality
-
+backend for portfolio site
+front end located at https://lilygrenportfolio.herokuapp.com/
+the backend can be located at https://backendforlilygrenportfolio.herokuapp.com/
 ## App.Routes Explaination
 
 ### User Creation
